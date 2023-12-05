@@ -15,7 +15,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class MainActivity extends AppCompatActivity {
-    private static float mouse_x = 0, mouse_y = 0;
+    private static float mouse_x = 0.5f, mouse_y = 0.5f;
     private static boolean mouse_lt = false, mouse_rt = false;
 
     public static Thread mouseSenderThread;
@@ -78,38 +78,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private static class MouseTransmitter implements Runnable {
-        private static final int PORT = 8889;
+        private static final int PORT = 25744;
         public boolean keepRunning = true;
 
         @Override
         public void run() {
             try (DatagramSocket socket = new DatagramSocket(PORT)) {
-                InetAddress hostAddress = InetAddress.getByName("192.168.15.254");
+                InetAddress hostAddress = InetAddress.getByName("192.168.15.211");
                 Log.d(getClass().getName(), "Runnable Started");
-                long startMillis = System.currentTimeMillis(), n = 0;
                 while (keepRunning) {
-                    byte[] data = new byte[10];
-                    packMouseData(data);
+                    byte[] data = packMouseData();
                     DatagramPacket packet = new DatagramPacket(data, data.length, hostAddress, PORT);
                     socket.send(packet);
-                    //System.out.println(n++);
-                    while (System.currentTimeMillis() - startMillis < 34); // about 2 times a second
-                    startMillis = System.currentTimeMillis();
+                    Thread.sleep(17);
                 }
-            } catch (IOException e) {
+            } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        private void packMouseData(byte[] data) {
-            int temp_x, temp_y;
-            temp_x = Float.floatToIntBits(mouse_x);
-            temp_y = Float.floatToIntBits(mouse_y);
-            for (int i = 0; i < 4; i++) {
-                data[i]   = (byte) (temp_x >>> (i * 8));
-                data[i+4] = (byte) (temp_y >>> (i * 8));
-            }
-            data[9] = (byte) ((mouse_lt?2:0)|(mouse_rt?1:0));
+        private byte[] packMouseData() {
+            String data = mouse_x + " " + mouse_y + " " + mouse_lt + " " + mouse_rt;
+            return data.getBytes();
         }
     }
 }
